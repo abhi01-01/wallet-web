@@ -31,7 +31,7 @@ export default function WalletActionsPage() {
     const currentUserLabel =
         user?.ldap ?? user?.email ?? user?.displayName ?? "Current user";
 
-    const [spendUserId] = useState(defaultUserId);
+    const spendUserId = defaultUserId;
     const [spendAssetCode, setSpendAssetCode] = useState<AssetCode>("GOLD");
     const [spendAmount, setSpendAmount] = useState("10");
     const [spendDescription, setSpendDescription] = useState(
@@ -39,6 +39,7 @@ export default function WalletActionsPage() {
     );
 
     const [bonusUserId, setBonusUserId] = useState("");
+    const [bonusUserLabel, setBonusUserLabel] = useState("");
     const [bonusAssetCode, setBonusAssetCode] = useState<AssetCode>("LOYALTY");
     const [bonusAmount, setBonusAmount] = useState("100");
     const [bonusDescription, setBonusDescription] = useState(
@@ -61,8 +62,9 @@ export default function WalletActionsPage() {
         },
         onError: (error) => {
             setErrorMessage(
-                resolveErrorMessage(error, {
-                    responseFallback: "Request failed. Check backend response.",
+                formatWalletActionError(error, {
+                    internalUserId: spendUserId,
+                    visibleUserLabel: currentUserLabel,
                 })
             );
         },
@@ -76,8 +78,9 @@ export default function WalletActionsPage() {
         },
         onError: (error) => {
             setErrorMessage(
-                resolveErrorMessage(error, {
-                    responseFallback: "Request failed. Check backend response.",
+                formatWalletActionError(error, {
+                    internalUserId: bonusUserId,
+                    visibleUserLabel: bonusUserLabel,
                 })
             );
         },
@@ -104,7 +107,7 @@ export default function WalletActionsPage() {
         setErrorMessage(null);
 
         if (!spendUserId.trim()) {
-            setErrorMessage("User ID is required for spend.");
+            setErrorMessage("Unable to resolve your account for spend.");
             return;
         }
 
@@ -138,7 +141,7 @@ export default function WalletActionsPage() {
         }
 
         if (!bonusUserId.trim()) {
-            setErrorMessage("Target user ID is required for bonus.");
+            setErrorMessage("Target user is required for bonus.");
             return;
         }
 
@@ -271,6 +274,11 @@ export default function WalletActionsPage() {
                                     disabled={!isSystemUser}
                                     onChange={(selectedUser) => {
                                         setBonusUserId(selectedUser?.userId ?? "");
+                                        setBonusUserLabel(
+                                            selectedUser?.ldap ??
+                                            selectedUser?.email ??
+                                            ""
+                                        );
                                     }}
                                 />
                         </div>
@@ -320,6 +328,33 @@ export default function WalletActionsPage() {
             </div>
         </AppShell>
     );
+}
+
+type WalletActionErrorOptions = {
+    internalUserId: string | null | undefined;
+    visibleUserLabel: string | null | undefined;
+};
+
+function formatWalletActionError(
+    error: unknown,
+    { internalUserId, visibleUserLabel }: WalletActionErrorOptions
+) {
+    const rawMessage = resolveErrorMessage(error, {
+        responseFallback: "Request failed. Check backend response.",
+    });
+
+    const normalizedUserId = internalUserId?.trim();
+    const normalizedLabel = visibleUserLabel?.trim();
+
+    if (
+        !normalizedUserId ||
+        !normalizedLabel ||
+        normalizedUserId === normalizedLabel
+    ) {
+        return rawMessage;
+    }
+
+    return rawMessage.replaceAll(normalizedUserId, normalizedLabel);
 }
 
 function Input({
