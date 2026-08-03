@@ -6,6 +6,7 @@ import { Sidebar } from "./sidebar";
 import { Topbar } from "./topbar";
 import { useSidebar } from "./sidebar-context";
 import { cn } from "@/lib/utils";
+import { Footer } from "./footer";
 
 type AppShellProps = {
     children: ReactNode;
@@ -21,12 +22,13 @@ export function AppShell({ children, allowedRoles }: AppShellProps) {
                 <Sidebar />
                 <div
                     className={cn(
-                        "min-h-screen transition-[padding] duration-200 ease-out",
+                        "flex min-h-screen flex-col transition-[padding] duration-200 ease-out",
                         isCollapsed ? "pl-20 sm:pl-24" : "pl-20 md:pl-72"
                     )}
                 >
                     <Topbar />
-                    <main className="px-8 py-8">{children}</main>
+                    <main className="flex-1 px-8 py-8">{children}</main>
+                    <Footer />
                 </div>
             </div>
         </ProtectedRoute>
