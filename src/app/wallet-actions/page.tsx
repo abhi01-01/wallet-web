@@ -15,6 +15,8 @@ import type {
 import { createIdempotencyKey } from "@/lib/idempotency";
 import { UserOptionSelect } from "@/features/users/components/user-option-select";
 import { resolveErrorMessage } from "@/lib/errors";
+import { cn } from "@/lib/utils";
+import { canShowSystemBonusCard } from "@/features/wallet-actions/visibility";
 
 const spendAssets: AssetCode[] = ["GOLD", "DIAMOND", "LOYALTY"];
 const bonusAssets: AssetCode[] = ["GOLD", "DIAMOND", "LOYALTY"];
@@ -25,7 +27,7 @@ export default function WalletActionsPage() {
     const defaultUserId = user?.userId ?? user?.subject ?? "";
     const ownerType = user?.ownerType ?? user?.role ?? null;
 
-    const isSystemUser = ownerType === "SYSTEM";
+    const isSystemUser = canShowSystemBonusCard(ownerType);
     const isNormalUser = ownerType === "USER";
 
     const currentUserLabel =
@@ -180,16 +182,23 @@ export default function WalletActionsPage() {
                 </div>
             </div>
 
-            <div className="mt-8 grid gap-4 md:grid-cols-3">
+            <div
+                className={cn(
+                    "mt-8 grid gap-4",
+                    isSystemUser ? "md:grid-cols-2" : "md:grid-cols-1"
+                )}
+            >
                 <MetricCard
                     label="Spend"
                     value={isNormalUser ? "Enabled" : "USER only"}
                 />
 
-                <MetricCard
-                    label="Bonus"
-                    value={isSystemUser ? "Enabled" : "SYSTEM only"}
-                />
+                {isSystemUser ? (
+                    <MetricCard
+                        label="Bonus"
+                        value="Enabled"
+                    />
+                ) : null}
             </div>
 
             <Card className="mt-8">
@@ -202,7 +211,12 @@ export default function WalletActionsPage() {
                 </Card>
             ) : null}
 
-            <div className="mt-8 grid gap-6 xl:grid-cols-2">
+            <div
+                className={cn(
+                    "mt-8 grid gap-6",
+                    isSystemUser ? "xl:grid-cols-2" : "xl:grid-cols-1"
+                )}
+            >
                 <Card className={!isNormalUser ? "opacity-60" : undefined}>
                     <p className="text-sm font-medium text-white">Spend wallet credits</p>
 
@@ -257,21 +271,15 @@ export default function WalletActionsPage() {
                     ) : null}
                 </Card>
 
-                <Card className={!isSystemUser ? "opacity-60" : undefined}>
-                    <p className="text-sm font-medium text-white">Issue SYSTEM bonus</p>
+                {isSystemUser ? (
+                    <Card>
+                        <p className="text-sm font-medium text-white">Issue SYSTEM bonus</p>
 
-                    {!isSystemUser ? (
-                        <div className="mt-6 rounded-xl border border-yellow-400/20 bg-yellow-400/10 px-4 py-3 text-xs leading-5 text-yellow-100/80">
-                            Your current ROLE is not SYSTEM.
-                        </div>
-                    ) : null}
-
-                    <form onSubmit={handleBonus} className="mt-6 space-y-5">
-                        <div>
+                        <form onSubmit={handleBonus} className="mt-6 space-y-5">
+                            <div>
                                 <UserOptionSelect
                                     label="Target user"
                                     value={bonusUserId}
-                                    disabled={!isSystemUser}
                                     onChange={(selectedUser) => {
                                         setBonusUserId(selectedUser?.userId ?? "");
                                         setBonusUserLabel(
@@ -281,50 +289,48 @@ export default function WalletActionsPage() {
                                         );
                                     }}
                                 />
-                        </div>
+                            </div>
 
-                        <div className="grid gap-4 md:grid-cols-2">
-                            <Select
-                                label="Asset"
-                                value={bonusAssetCode}
-                                onChange={(value) => setBonusAssetCode(value as AssetCode)}
-                                options={bonusAssets}
-                                disabled={!isSystemUser}
-                            />
+                            <div className="grid gap-4 md:grid-cols-2">
+                                <Select
+                                    label="Asset"
+                                    value={bonusAssetCode}
+                                    onChange={(value) => setBonusAssetCode(value as AssetCode)}
+                                    options={bonusAssets}
+                                />
+
+                                <Input
+                                    label="Amount"
+                                    type="number"
+                                    value={bonusAmount}
+                                    onChange={setBonusAmount}
+                                    placeholder="100"
+                                />
+                            </div>
 
                             <Input
-                                label="Amount"
-                                type="number"
-                                value={bonusAmount}
-                                onChange={setBonusAmount}
-                                placeholder="100"
-                                disabled={!isSystemUser}
+                                label="Description"
+                                value={bonusDescription}
+                                onChange={setBonusDescription}
+                                placeholder="SYSTEM reward bonus"
                             />
-                        </div>
 
-                        <Input
-                            label="Description"
-                            value={bonusDescription}
-                            onChange={setBonusDescription}
-                            placeholder="SYSTEM reward bonus"
-                            disabled={!isSystemUser}
-                        />
+                            <button
+                                type="submit"
+                                disabled={bonusMutation.isPending}
+                                className="w-full rounded-xl bg-white px-4 py-3 text-sm font-semibold text-zinc-950 transition hover:bg-zinc-200 disabled:cursor-not-allowed disabled:opacity-50"
+                            >
+                                {bonusMutation.isPending ? "Issuing bonus..." : "Issue bonus"}
+                            </button>
+                        </form>
 
-                        <button
-                            type="submit"
-                            disabled={!isSystemUser || bonusMutation.isPending}
-                            className="w-full rounded-xl bg-white px-4 py-3 text-sm font-semibold text-zinc-950 transition hover:bg-zinc-200 disabled:cursor-not-allowed disabled:opacity-50"
-                        >
-                            {bonusMutation.isPending ? "Issuing bonus..." : "Issue bonus"}
-                        </button>
-                    </form>
-
-                    {latestBonus ? (
-                        <div className="mt-6">
-                            <JsonBlock title="Latest Bonus Response" value={latestBonus} />
-                        </div>
-                    ) : null}
-                </Card>
+                        {latestBonus ? (
+                            <div className="mt-6">
+                                <JsonBlock title="Latest Bonus Response" value={latestBonus} />
+                            </div>
+                        ) : null}
+                    </Card>
+                ) : null}
             </div>
         </AppShell>
     );

@@ -8,6 +8,7 @@
     "start": "next start",
     "lint": "eslint",
     "typecheck": "tsc --noEmit --incremental false",
+    "test": "tsc -p tsconfig.test.json && node --test .test-build/src/features/wallet-actions/visibility.test.js",
     "check": "npm run lint && npm run build"
   },
   "dependencies": {
